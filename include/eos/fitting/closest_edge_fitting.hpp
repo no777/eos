@@ -19,8 +19,11 @@
  */
 #pragma once
 
+
 #ifndef CLOSESTEDGEFITTING_HPP_
 #define CLOSESTEDGEFITTING_HPP_
+
+#define USE_OPENCL
 
 #include "eos/core/Mesh.hpp"
 #include "eos/morphablemodel/EdgeTopology.hpp"
@@ -44,6 +47,11 @@
 #include <algorithm>
 #include <utility>
 #include <cstddef>
+
+#ifdef USE_OPENCL
+#include "closest_edge_fitting_cl.hpp"
+#endif
+
 
 namespace eos {
 	namespace fitting {
@@ -124,6 +132,9 @@ inline std::pair<bool, boost::optional<float>> ray_triangle_intersect(const glm:
  */
 inline std::vector<int> occluding_boundary_vertices(const core::Mesh& mesh, const morphablemodel::EdgeTopology& edge_topology, glm::mat4x4 R)
 {
+#ifdef USE_OPENCL
+    return occluding_boundary_vertices_cl(mesh,edge_topology,R);
+#endif
 	// Rotate the mesh:
 	std::vector<glm::vec4> rotated_vertices;
 	std::for_each(begin(mesh.vertices), end(mesh.vertices), [&rotated_vertices, &R](auto&& v) { rotated_vertices.push_back(R * v); });

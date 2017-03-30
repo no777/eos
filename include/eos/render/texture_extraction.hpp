@@ -22,6 +22,8 @@
 #ifndef TEXTURE_EXTRACTION_HPP_
 #define TEXTURE_EXTRACTION_HPP_
 
+#define USE_TBB
+
 #include "eos/core/Mesh.hpp"
 #include "eos/render/detail/texture_extraction_detail.hpp"
 #include "eos/render/render_affine.hpp"
@@ -43,6 +45,8 @@
 #include <cassert>
 #include <future>
 #include <vector>
+
+#include "tbb/tbb.h"
 
 namespace eos {
 	namespace render {
@@ -134,8 +138,17 @@ inline cv::Mat extract_texture(core::Mesh mesh, cv::Mat affine_camera_matrix, cv
 	Mat isomap = Mat::zeros(isomap_resolution, isomap_resolution, CV_8UC4);
 	// #Todo: We should handle gray images, but output a 4-channel isomap nevertheless I think.
 
-	std::vector<std::future<void>> results;
+#ifdef USE_TBB
+    int count =mesh.tvi.size();
+    
+    tbb::parallel_for(0, (int)count, [&](int idx){
+        std::vector<std::future<void>> results;
+        auto triangle_indices = mesh.tvi[idx];
+#else
+    std::vector<std::future<void>> results;
+
 	for (const auto& triangle_indices : mesh.tvi) {
+#endif
 
 		// Note: If there's a performance problem, there's no need to capture the whole mesh - we could capture only the three required vertices with their texcoords.
 		auto extract_triangle = [&mesh, &affine_camera_matrix, &triangle_indices, &depthbuffer, &isomap, &mapping_type, &image, &compute_view_angle]() {
@@ -338,12 +351,18 @@ inline cv::Mat extract_texture(core::Mesh mesh, cv::Mat affine_camera_matrix, cv
 			}
 		}; // end lambda auto extract_triangle();
 		results.emplace_back(std::async(extract_triangle));
-	} // end for all mesh.tvi
-	// Collect all the launched tasks:
-	for (auto&& r : results) {
-		r.get();
-	}
+#ifdef USE_TBB
+        
+    }); // end for all mesh.tvi
+#else
+    };
+   for (auto&& r : results) {
+   r.get();
+   }
+                      
 
+#endif
+	// Collect all the launched tasks:
 	// Workaround for the black line in the isomap (see GitHub issue #4):
 	if (mesh.texcoords.size() <= 3448)
 	{

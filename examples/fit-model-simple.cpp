@@ -203,8 +203,12 @@ int main(int argc, char *argv[])
 	core::Mesh mesh = morphable_model.draw_sample(fitted_coeffs, vector<float>());
 
 	// Extract the texture from the image using given mesh and camera parameters:
+    
+    for(int i=0;i<100;i++){
 	Mat isomap = render::extract_texture(mesh, affine_from_ortho, image);
-
+    }
+    Mat isomap = render::extract_texture(mesh, affine_from_ortho, image);
+    
 	// Save the mesh as textured obj:
 	outputfile += fs::path(".obj");
 	core::write_textured_obj(mesh, outputfile.string());

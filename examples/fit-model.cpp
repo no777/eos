@@ -35,6 +35,8 @@
 #include <iostream>
 #include <fstream>
 
+#include "eos/fitting/closest_edge_fitting_cl.hpp"
+
 using namespace eos;
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
@@ -139,6 +141,8 @@ void draw_wireframe(cv::Mat image, const core::Mesh& mesh, glm::mat4x4 modelview
  */
 int main(int argc, char *argv[])
 {
+    
+	int textSize=1024;
 	fs::path modelfile, isomapfile, imagefile, landmarksfile, mappingsfile, contourfile, edgetopologyfile, blendshapesfile, outputfile;
 	try {
 		po::options_description desc("Allowed options");
@@ -149,6 +153,10 @@ int main(int argc, char *argv[])
 				"a Morphable Model stored as cereal BinaryArchive")
 			("image,i", po::value<fs::path>(&imagefile)->required()->default_value("data/image_0010.png"),
 				"an input image")
+
+			 ("size,s",  po::value<int>(&textSize)->default_value(1024),
+                  "text size.")
+
 			("landmarks,l", po::value<fs::path>(&landmarksfile)->required()->default_value("data/image_0010.pts"),
 				"2D landmarks for the image, in ibug .pts format")
 			("mapping,p", po::value<fs::path>(&mappingsfile)->required()->default_value("../share/ibug_to_sfm.txt"),
@@ -176,6 +184,11 @@ int main(int argc, char *argv[])
 		cout << "Use --help to display a list of options." << endl;
 		return EXIT_FAILURE;
 	}
+    
+    eos::fitting::initOpenCL();
+    
+    
+
 
 	// Load the image, landmarks, LandmarkMapper and the Morphable Model:
 	Mat image = cv::imread(imagefile.string());
@@ -225,7 +238,7 @@ int main(int argc, char *argv[])
 
 	// Extract the texture from the image using given mesh and camera parameters:
 	Mat affine_from_ortho = fitting::get_3x4_affine_camera_matrix(rendering_params, image.cols, image.rows);
-	Mat isomap = render::extract_texture(mesh, affine_from_ortho, image);
+	Mat isomap = render::extract_texture(mesh, affine_from_ortho, image,false,render::TextureInterpolation::NearestNeighbour,textSize);
 
 	// Draw the fitted mesh as wireframe, and save the image:
 	draw_wireframe(outimg, mesh, rendering_params.get_modelview(), rendering_params.get_projection(), fitting::get_opencv_viewport(image.cols, image.rows));

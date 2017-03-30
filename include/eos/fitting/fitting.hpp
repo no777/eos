@@ -37,6 +37,8 @@
 
 #include "opencv2/core/core.hpp"
 
+#include "tbb/tbb.h"
+
 #include <cassert>
 #include <vector>
 #include <algorithm>

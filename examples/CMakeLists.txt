@@ -1,4 +1,6 @@
 # The examples need a few additional dependencies (e.g. boost filesystem and OpenCV highgui):
+message(arrayfire_libraries,${ArrayFire_LIBRARIES})
+
 
 #check installed version in order to include the correct OpenCV libraries
 #version variable is defined from project root's CMakeLists
@@ -22,13 +24,13 @@ message(STATUS "Boost found at ${Boost_INCLUDE_DIRS}")
 
 # Simple model fitting (orthographic camera & shape to landmarks) example:
 add_executable(fit-model-simple fit-model-simple.cpp)
-target_link_libraries(fit-model-simple eos ${OpenCV_LIBS} ${Boost_LIBRARIES})
-target_link_libraries(fit-model-simple "$<$<CXX_COMPILER_ID:GNU>:-pthread>$<$<CXX_COMPILER_ID:Clang>:-pthreads>")
+target_link_libraries(fit-model-simple eos  ${TBB_LIBRARIES} ${OpenCV_LIBS} ${Boost_LIBRARIES})
+target_link_libraries(fit-model-simple  ${TBB_LIBRARIES} "$<$<CXX_COMPILER_ID:GNU>:-pthread>$<$<CXX_COMPILER_ID:Clang>:-pthreads>")
 
 # Model fitting example that fits orthographic camera, shape, blendshapes, and contours:
 add_executable(fit-model fit-model.cpp)
-target_link_libraries(fit-model eos ${OpenCV_LIBS} ${Boost_LIBRARIES})
-target_link_libraries(fit-model "$<$<CXX_COMPILER_ID:GNU>:-pthread>$<$<CXX_COMPILER_ID:Clang>:-pthreads>")
+target_link_libraries(fit-model eos eosfitting  ${TBB_LIBRARIES} ${ArrayFire_LIBRARIES} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${OpenCL_LIBRARIES})
+target_link_libraries(fit-model eosfitting ${TBB_LIBRARIES} ${ArrayFire_LIBRARIES} "$<$<CXX_COMPILER_ID:GNU>:-pthread>$<$<CXX_COMPILER_ID:Clang>:-pthreads>")
 
 # Generate random samples from the model:
 add_executable(generate-obj generate-obj.cpp)

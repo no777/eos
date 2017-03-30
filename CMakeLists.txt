@@ -7,6 +7,11 @@ set(eos_VERSION ${eos_VERSION_MAJOR}.${eos_VERSION_MINOR}.${eos_VERSION_PATCH})
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
+
+message(CMAKE_MODULE_PATH,${CMAKE_MODULE_PATH})
+
+
 # This sets the C++ standard to c++14 and required for all the following targets that we define.
 # It has no effect on MSVC though - we thus define more specific requirements for each executable target respectively.
 # Also it will not apply to the eos library target, since it is an INTERFACE_LIBRARY, and these properties do not apply to interface libraries.
@@ -40,6 +45,19 @@ set(CPACK_PACKAGE_VERSION_PATCH "${eos_VERSION_PATCH}")
 include(CPack)
 
 # Find dependencies:
+FIND_PACKAGE(ArrayFire)
+INCLUDE_DIRECTORIES(${ArrayFire_INCLUDE_DIRS})
+
+FIND_PACKAGE(TBB)
+INCLUDE_DIRECTORIES(${TBB_INCLUDE_DIRS})
+
+#... [gather source files, etc.]
+
+
+# If you intend to use OpenCL, you need to find it
+FIND_PACKAGE(OpenCL)
+SET(EXTRA_LIBS ${CMAKE_THREAD_LIBS_INIT} ${OpenCL_LIBRARIES})
+
 find_package(OpenCV REQUIRED core)
 
 if(MSVC)
@@ -89,6 +107,7 @@ set(HEADERS
   ${CMAKE_CURRENT_SOURCE_DIR}/include/eos/fitting/contour_correspondence.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/eos/fitting/blendshape_fitting.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/eos/fitting/closest_edge_fitting.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/eos/fitting/closest_edge_fitting_cl.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/eos/fitting/fitting.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/eos/fitting/ceres_nonlinear.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/eos/fitting/RenderingParameters.hpp
@@ -107,8 +126,11 @@ set(HEADERS
   ${CMAKE_CURRENT_SOURCE_DIR}/include/eos/video/Keyframe.hpp
 )
 
+
+
 add_library(eos INTERFACE)
 target_compile_features(eos INTERFACE ${EOS_CXX_COMPILE_FEATURES})
+
 # Add header includes:
 target_include_directories(eos INTERFACE "include")
 target_include_directories(eos INTERFACE ${CEREAL_INCLUDE_DIR})
@@ -118,6 +140,20 @@ target_include_directories(eos INTERFACE ${EIGEN3_INCLUDE_DIR})
 target_include_directories(eos INTERFACE ${glm_INCLUDE_DIR})
 target_include_directories(eos INTERFACE ${nanoflann_INCLUDE_DIR})
 target_include_directories(eos INTERFACE ${eigen3_nnls_INCLUDE_DIR})
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(${CEREAL_INCLUDE_DIR})
+include_directories(  ${Boost_INCLUDE_DIRS})
+include_directories(  ${OpenCV_INCLUDE_DIRS})
+include_directories(  ${EIGEN3_INCLUDE_DIR})
+include_directories(  ${glm_INCLUDE_DIR})
+include_directories(  ${nanoflann_INCLUDE_DIR})
+include_directories(  ${eigen3_nnls_INCLUDE_DIR})
+
+add_library(eosfitting SHARED src/eos/fitting/closest_edge_fitting_cl.cpp)
+#target_include_directories(eosfitting INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+target_link_libraries(eosfitting eos afopencl ${ArrayFire_LIBRARIES} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${OpenCL_LIBRARIES})
 
 # Custom target for the library, to make the headers show up in IDEs:
 add_custom_target(eos-headers SOURCES ${HEADERS})
@@ -145,6 +181,9 @@ install(FILES ${eos_3RDPARTY_DIR}/eigen3-nnls/README.md DESTINATION 3rdparty/eig
 if(EIGEN3_INCLUDE_DIR STREQUAL ${eos_3RDPARTY_DIR}/eigen)
   install(DIRECTORY ${eos_3RDPARTY_DIR}/eigen/Eigen/ DESTINATION 3rdparty/eigen/Eigen)
 endif()
+
+
+
 
 if(EOS_BUILD_EXAMPLES)
   add_subdirectory(examples)
